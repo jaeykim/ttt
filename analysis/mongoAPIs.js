@@ -1,37 +1,43 @@
 var mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
 
-mongoose.connect('mongodb://localhost/eth-analysis?maxPoolSize=100', { useNewUrlParser: true, useCreateIndex: true, useUnifiedTopology: true});
+mongoose.connect('mongodb://localhost:8445/btc-analysis?maxPoolSize=100', { useNewUrlParser: true, useCreateIndex: true, useUnifiedTopology: true});
+
+const BlockSchema = new mongoose.Schema({
+    hash: { type: String, unique: true },
+    height: { type: Number, unique: true },
+    size: Number,
+    version: Number,
+    tx: [String],
+    time: { type: Date },
+    difficulty: String
+});
+BlockSchema.index({ height: 1, hash: 1 });
 
 const AccountSchema = new mongoose.Schema({
+    pubkeyhash: { type: String, unique: true },
     address: { type: String, unique: true },
-    initialBalance: { type: String, default: "0" },
-    activeBlocks: [Number],
-    transferringValues: [Object],
-    restoreBlocks_1w: [Number],
-    restoreBlocks_1m: [Number]
+    utxos: [String],
+    isExchange: { type: Boolean, default: false }
 });
-AccountSchema.index({ address: 1 });
+AccountSchema.index({ pubkeyhash: 1 });
 
-const TransactionSchema = new mongoose.Schema({
-    hash: { type: String, unique: true },
+const UTXOSchema = new mongoose.Schema({
+    hash: { type: String },
     blockNum: Number,
-    transactionIndex: Number,
-    from: String,
-    to: String,
+    inputs: [String],
+    outputs: [String],
     value: String,
-    nonce: Number
+    fee: String
 });
-TransactionSchema.index({ blockNum: 1, transactionIndex: 1 });
+UTXOSchema.index({ hash: 1, blockNum: 1 });
 
+var Blocks = mongoose.model('Blocks', BlockSchema);
 var Accounts = mongoose.model('Accounts', AccountSchema);
-var Transactions = mongoose.model('Transactions', TransactionSchema);
-var Accounts_ = mongoose.model('Accounts_', AccountSchema);
-var Transactions_ = mongoose.model('Transactions_', TransactionSchema);
+var UTXOs = mongoose.model('UTXOs', UTXOSchema);
 
 module.exports = {
+    Blocks,
     Accounts,
-    Transactions,
-    Accounts_,
-    Transactions_
+    UTXOs,
 };
