@@ -6,13 +6,14 @@ var { Blocks, Accounts, UTXOs } = require('./mongoAPIs');
 const ProgressBar = require('./progress');
 var bitcore = require('bitcore-lib');
 var RpcClient = require('bitcoind-rpc');
+var fs = require('fs');
 var BufferReader = bitcore.encoding.BufferReader;
 var Opcode = bitcore.Opcode;
 
 var config = {
     protocol: 'http',
-    user: '',
-    pass: '',
+    user: 'huisu',
+    pass: 'ssuhuisu',
     host: '127.0.0.1',
     port: '8332',
 };
@@ -25,7 +26,7 @@ const BATCH = 1000;
 if (cluster.isMaster) {
 	let start = INITIAL_BLOCK;
 	let end = 600000;
-	let workers = 5; // require('os').cpus().length - 1;
+	let workers = 2; // require('os').cpus().length - 1;
 
 	// Parse arguments
 	if (process.argv.length >= 4) {
@@ -117,7 +118,7 @@ function getTransactions(height) {
 				await Accounts.updateOne(
 					{ pubkeyhash: pubkeyhash },
 					{ $push: { utxos: txid }},
-					{ upsert: true }					
+					{ upsert: true }
 				);
 			});
 		});
@@ -133,7 +134,7 @@ function getTransaction(txid) {
 				reject(err);
 			}
 			if (!ret) {
-				fs.appendFileSync('error_message.txt', txid, 'utf8');
+				fs.appendFileSync('error_message.txt', txid + '\n', 'utf8');
 				resolve(undefined);
 			}
 			resolve(getAddressesFromTx(ret.result));
@@ -191,8 +192,13 @@ function getPubkeyHashFromInputScript(input) {
         // console.log(input);
         let decodedScript = input.script.toASM().split(" ")
         if (decodedScript.length === 2) {
-            // return bitcore.Address.fromPublicKey(bitcore.PublicKey.fromString(decodedScript[1])).toString();
-            return bitcore.crypto.Hash.sha256ripemd160(bitcore.PublicKey.fromString(decodedScript[1]).toBuffer()).toString('hex');
+			try {
+				// return bitcore.Address.fromPublicKey(bitcore.PublicKey.fromString(decodedScript[1])).toString();
+				return bitcore.crypto.Hash.sha256ripemd160(bitcore.PublicKey.fromString(decodedScript[1]).toBuffer()).toString('hex');	
+			} catch(e) {
+				fs.appendFileSync('error_message.txt', JSON.stringify(input) + '\n', 'utf8');
+				return null;
+			}
         }
     }
     // else: coinbase tx (no input address)
